@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Block Puzzle",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Block Puzzle",
+  "start_url": "https://github.com/davvvveeeeeee-hub/my-p",
+  "theme_color": "#ffffff",
+  "description": "Игра просто для тебя",
+  "id": "Block Puzzle"
+}
