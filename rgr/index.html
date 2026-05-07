@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI NEXUS ULTIMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #000; --panel: #1a1a1a; --accent: #007aff; --text: #fff; --border: #333; }
+        .light-mode { --bg: #f2f2f7; --panel: #fff; --accent: #007aff; --text: #000; --border: #ccc; }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
+
+        /* HEADER */
+        .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; background: var(--panel); border-bottom: 1px solid var(--border); }
+        .btn-h { background: none; border: none; color: var(--accent); font-size: 22px; cursor: pointer; }
+
+        /* SIDEBAR */
+        #side { position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: var(--panel); z-index: 1000; transform: translateX(-100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 25px 15px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .side-open { transform: translateX(0) !important; }
+        #hist-list { flex: 1; overflow-y: auto; margin: 20px 0; }
+        .hist-item { padding: 12px; background: rgba(128,128,128,0.1); border-radius: 10px; margin-bottom: 10px; font-size: 14px; cursor: pointer; border: 1px solid transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hist-item:hover { background: rgba(0,122,255,0.1); }
+
+        /* CHAT */
+        #chat { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 20px; font-size: 16px; line-height: 1.4; word-wrap: break-word; }
+        .u { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+        .a { align-self: flex-start; background: #2c2c2e; border-bottom-left-radius: 4px; color: #fff; }
+        .loading { opacity: 0.6; font-style: italic; }
+
+        /* FOOTER */
+        .footer { padding: 10px 15px 35px; background: var(--bg); }
+        .bar { background: var(--panel); border-radius: 30px; display: flex; align-items: center; padding: 5px; border: 1px solid var(--border); gap: 5px; }
+        #main-in { flex: 1; background: none; border: none; color: var(--text); padding: 10px 5px; font-size: 16px; min-width: 0; }
+        
+        .action-btn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: none; background: none; color: var(--accent); font-size: 20px; cursor: pointer; flex-shrink: 0; }
+        .send-btn { background: var(--accent); color: #fff; border-radius: 50%; font-size: 18px; margin-left: 5px; }
+
+        /* SETTINGS */
+        #prof { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: flex-end; z-index: 2000; }
+        .prof-box { background: var(--panel); width: 100%; border-radius: 30px 30px 0 0; padding: 30px 20px; }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
+        
+        .switch { position: relative; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #3a3a3c; transition: .3s; border-radius: 34px; cursor: pointer; }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background: var(--accent); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div id="side">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 id="txt-hist" style="margin:0">История</h2>
+        <button class="action-btn" onclick="toggleSide()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="hist-list"></div>
+    <button id="txt-newchat" onclick="createNewChat()" style="width:100%; padding:15px; background:var(--accent); color:white; border:none; border-radius:15px; font-weight:bold;">+ Новый чат</button>
+</div>
+
+<div class="header">
+    <button class="btn-h" onclick="toggleSide()"><i class="fa-solid fa-bars-staggered"></i></button>
+    <b>AI NEXUS</b>
+    <button class="btn-h" onclick="toggleProf()"><i class="fa-solid fa-circle-user"></i></button>
+</div>
+
+<div id="chat"></div>
+
+<div id="prof" onclick="toggleProf()">
+    <div class="prof-box" onclick="event.stopPropagation()">
+        <h2 id="txt-settings" style="margin:0 0 20px 0">Настройки</h2>
+        
+        <div class="row"><span id="txt-theme">Светлая тема</span><label class="switch"><input type="checkbox" onchange="document.body.classList.toggle('light-mode'); vib();"><span class="slider"></span></label></div>
+        <div class="row"><span id="txt-vib">Вибрация</span><label class="switch"><input type="checkbox" id="vib-on" checked><span class="slider"></span></label></div>
+        <div class="row">
+            <span id="txt-lang">Язык</span>
+            <select id="lang-select" onchange="setLang(this.value)" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:5px 10px; border-radius:8px;">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+
+        <button id="txt-close" onclick="toggleProf()" style="width:100%; margin-top:20px; padding:15px; border-radius:15px; background:var(--accent); color:white; border:none; font-weight:bold;">Закрыть</button>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="bar">
+        <button class="action-btn" onclick="document.getElementById('file-in').click()"><i class="fa-solid fa-plus"></i></button>
+        <input type="file" id="file-in" style="display:none" accept="image/*">
+        <input type="text" id="main-in" placeholder="Сообщение..." onkeypress="if(event.key=='Enter')send()">
+        <button class="action-btn send-btn" onclick="send()"><i class="fa-solid fa-arrow-up"></i></button>
+    </div>
+</div>
+
+<script>
+    /* --- ТВОЙ КЛЮЧ GROQ (ВСТАВЛЕН) --- */
+    const ADMIN_API_KEY = "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"; 
+
+    let threads = JSON.parse(localStorage.getItem('nexus_threads')) || [];
+    let currentThreadIndex = localStorage.getItem('nexus_current_idx') !== null ? parseInt(localStorage.getItem('nexus_current_idx')) : -1;
+    let lang = localStorage.getItem('nexus_lang') || 'ru';
+
+    const i18n = {
+        ru: { hist: "История", new: "+ Новый чат", settings: "Настройки", theme: "Светлая тема", vib: "Вибрация", lang: "Язык", close: "Закрыть", placeholder: "Сообщение...", error: "Ошибка или лимит запросов.", wait: "Думаю..." },
+        en: { hist: "History", new: "+ New Chat", settings: "Settings", theme: "Light Mode", vib: "Vibration", lang: "Language", close: "Close", placeholder: "Message...", error: "Error or Rate Limit.", wait: "Thinking..." }
+    };
+
+    function vib() { if(document.getElementById('vib-on').checked && navigator.vibrate) navigator.vibrate(40); }
+    function toggleSide() { document.getElementById('side').classList.toggle('side-open'); renderHistoryList(); vib(); }
+    function toggleProf() { let p = document.getElementById('prof'); p.style.display = p.style.display == 'flex' ? 'none' : 'flex'; vib(); }
+
+    function setLang(l) {
+        lang = l; localStorage.setItem('nexus_lang', l);
+        document.getElementById('txt-hist').innerText = i18n[l].hist;
+        document.getElementById('txt-newchat').innerText = i18n[l].new;
+        document.getElementById('txt-settings').innerText = i18n[l].settings;
+        document.getElementById('txt-theme').innerText = i18n[l].theme;
+        document.getElementById('txt-vib').innerText = i18n[l].vib;
+        document.getElementById('txt-lang').innerText = i18n[l].lang;
+        document.getElementById('txt-close').innerText = i18n[l].close;
+        document.getElementById('main-in').placeholder = i18n[l].placeholder;
+    }
+
+    async function send() {
+        let input = document.getElementById('main-in');
+        let val = input.value.trim();
+        if(!val) return;
+        if(currentThreadIndex === -1) createNewChat();
+
+        vib();
+        addMsg(val, 'u');
+        threads[currentThreadIndex].msgs.push({r:'u', t:val});
+        input.value = '';
+
+        let tempId = Date.now();
+        addMsg(i18n[lang].wait, 'a loading', false, tempId);
+
+        try {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${ADMIN_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: threads[currentThreadIndex].msgs.map(m => ({
+                        role: m.r === 'u' ? 'user' : 'assistant',
+                        content: m.t
+                    })).slice(-15)
+                })
+            });
+
+            if (!response.ok) throw new Error(response.status);
+
+            const data = await response.json();
+            document.getElementById(tempId).remove();
+
+            if (data.choices && data.choices[0]) {
+                let aiRes = data.choices[0].message.content;
+                addMsg(aiRes, 'a');
+                threads[currentThreadIndex].msgs.push({r:'a', t:aiRes});
+                if(threads[currentThreadIndex].msgs.length <= 2) {
+                    threads[currentThreadIndex].title = val.substring(0, 20);
+                }
+            }
+        } catch (e) {
+            let errEl = document.getElementById(tempId);
+            if(errEl) {
+                errEl.innerText = i18n[lang].error + " (" + e.message + ")";
+                errEl.classList.remove('loading');
+            }
+        }
+        saveAll();
+    }
+
+    function addMsg(t, c, img=false, id=null) {
+        let chat = document.getElementById('chat');
+        let d = document.createElement('div');
+        d.className = 'msg ' + c;
+        if(id) d.id = id;
+        d.innerText = t;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function createNewChat() {
+        threads.push({ title: lang === 'ru' ? "Новый чат" : "New Chat", msgs: [] });
+        currentThreadIndex = threads.length - 1;
+        document.getElementById('chat').innerHTML = '';
+        saveAll();
+        document.getElementById('side').classList.remove('side-open');
+    }
+
+    function renderHistoryList() {
+        const list = document.getElementById('hist-list');
+        list.innerHTML = '';
+        threads.forEach((t, i) => {
+            let div = document.createElement('div');
+            div.className = 'hist-item';
+            div.style.background = i === currentThreadIndex ? 'rgba(0,122,255,0.2)' : '';
+            div.innerText = t.title || "Чат " + (i+1);
+            div.onclick = () => { currentThreadIndex = i; loadThread(i); toggleSide(); };
+            list.appendChild(div);
+        });
+    }
+
+    function loadThread(idx) {
+        document.getElementById('chat').innerHTML = '';
+        if(threads[idx]) threads[idx].msgs.forEach(m => addMsg(m.t, m.r));
+        saveAll();
+    }
+
+    function saveAll() {
+        localStorage.setItem('nexus_threads', JSON.stringify(threads));
+        localStorage.setItem('nexus_current_idx', currentThreadIndex);
+    }
+
+    window.onload = () => {
+        setLang(lang);
+        if(currentThreadIndex !== -1 && threads[currentThreadIndex]) loadThread(currentThreadIndex);
+    };
+</script>
+</body>
+</html>
+
